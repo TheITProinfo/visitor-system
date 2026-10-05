@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMINISTRATOR
+  RECEPTIONIST
+  EMPLOYEE
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  DEACTIVATED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String?
+  firstName    String?
+  lastName     String?
+  role         UserRole
+  status       UserStatus @default(INVITED)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  hostedVisits VisitRecord[] @relation("VisitHost")
+  sentInvitations Invitation[] @relation("InvitationCreator")
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
+
+  @@index([role, status])
+  @@index([departmentId])
+}
+
+model Invitation {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  role        UserRole
+  tokenHash   String   @unique
+  expiresAt   DateTime @db.Timestamptz(3)
+  acceptedAt  DateTime? @db.Timestamptz(3)
+  createdById String
+  createdBy   User     @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([expiresAt, acceptedAt])
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  users     User[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model VisitPurpose {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  visits    VisitRecord[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model CompanySettings {
+  id                    String   @id @default(cuid())
+  companyName           String
+  address               String?
+  timeZone              String   @default("UTC")
+  logoFileKey           String?
+  agreementText         String?  @db.Text
+  smtpHost              String?
+  smtpPort              Int?
+  smtpSecure            Boolean  @default(true)
+  smtpUsername          String?
+  smtpPasswordEncrypted String?  @db.Text
+  smtpSenderName        String?
+  smtpSenderEmail       String?
+  printerEnabled        Boolean  @default(false)
+  printerModel          String?
+  printerAddress        String?
+  badgeLabelWidthMm     Int?
+  badgeLabelHeightMm    Int?
+  updatedAt             DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model VisitRecord {
+  id                       String   @id @default(cuid())
+  visitorFullName          String
+  visitorCompanyName       String?
+  isPersonalVisit          Boolean  @default(false)
+  visitorEmail             String
+  visitorPhone             String
+  vehicleRegistrationNumber String?
+  hostId                   String
+  host                     User     @relation("VisitHost", fields: [hostId], references: [id], onDelete: Restrict)
+  purposeId                String
+  purpose                  VisitPurpose @relation(fields: [purposeId], references: [id], onDelete: Restrict)
+  companyNameSnapshot      String
+  hostNameSnapshot         String
+  purposeNameSnapshot      String
+  agreementTextSnapshot    String?  @db.Text
+  signatureFileKey         String?
+  photoFileKey             String?
+  checkInToken             String?  @unique
+  signedAt                 DateTime? @db.Timestamptz(3)
+  checkedInAt              DateTime @default(now()) @db.Timestamptz(3)
+  checkedOutAt             DateTime? @db.Timestamptz(3)
+
+  @@index([visitorEmail, checkedInAt])
+  @@index([hostId, checkedInAt])
+  @@index([checkedInAt])
+}

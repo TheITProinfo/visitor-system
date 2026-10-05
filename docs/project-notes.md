@@ -1,0 +1,60 @@
+# Visitor — Confirmed Requirements
+
+- The product interface is in English.
+- This is a simple, universal visitor registration system configurable for the company using it.
+- Version one is a single-company deployment using the same application code, with a separate PostgreSQL database for each company. A shared multi-tenant service is deferred; multiple user accounts within a company are supported.
+- First-use setup establishes the initial Administrator's account and password. Administrators can subsequently change their own account details and password.
+- Administrator, Receptionist, and Employee accounts use Email + Password for authentication, with email-based password reset.
+- Visitors register and check in on arrival; no advance appointment is required.
+- Visitors complete registration themselves on a tablet at reception.
+- Registration collects Full Name, Company Name, Email, Phone Number, and Vehicle Registration Number for visitors arriving by car.
+- Full Name, Email, and Phone Number are required. Company visitors must supply Company Name; personal visitors select Personal Visit instead of supplying a company name. Vehicle Registration Number is required for visitors arriving by car and is otherwise not applicable.
+- Registration uses two pages: Your Details for personal information, followed by Visit Details for the person to visit and purpose of visit.
+- Purpose of Visit is selected from a dropdown on the second page. Its options remain undecided.
+- Visitors search for the person to visit by first name or last name and select a matching employee.
+- If no matching employee is found, the visitor is directed to reception for assistance. The reception handling workflow remains undecided.
+- Receptionists may assist visitors by entering registration information in the back office. Agreement signatures must be provided by the visitor, and photos must be captured from the visitor on site; reception staff cannot sign on their behalf. The handoff to the tablet and handling of a host absent from the directory remain undecided.
+- The tablet home page provides Check In and Check Out. Check-out is available but not mandatory.
+- Visitors may leave without checking out. For voluntary Check Out, the visitor enters their email address and the system finds their open visit record; no phone-number lookup is required.
+- Email lookup for Check Out targets the visitor's most recent visit by check-in time. It does not modify older unclosed visits or restrict lookup to the current day. If the latest visit is already checked out, it must not fall back to an older visit.
+- A missing check-out does not prove that the visitor is physically still present. Such records retain an empty departure time and display Not Checked Out; no departure time is filled automatically.
+- Check-in includes a visitor agreement with a handwritten signature and visitor photo capture.
+- Visitor photo capture uses the tablet front camera. Visitors can preview and retake the photo, then confirm it before completing check-in.
+- The Administrator can add and edit the visitor agreement template in the back office. Each company can use its own agreement content.
+- Retention of the exact agreement version signed by each visitor remains a proposed requirement awaiting confirmation.
+- Following successful check-in, email is sent to both the visitor and the host.
+- Check-in succeeds once its record is saved. Email delivery or badge printing failure must not undo or prevent successful check-in, and visitors must not need to register again because of either failure.
+- Back-office failure status and retry actions for email and printing remain proposed features awaiting confirmation.
+- The system should support an adhesive visitor badge printed by a Brother label printer. Visitor photos are not printed on the badge.
+- Visitor badge content is limited to the visitor's name and company name, without a photo. The label for personal visitors remains undecided.
+- Printer model, connection method, and printing configuration remain undecided.
+- Brother label printers are expected to connect wirelessly; the exact printing integration remains to be validated when hardware is available.
+- Visitor email confirms check-in with company, host, and check-in time. Host email announces the visitor's arrival with visitor name, company, and purpose. Photos remain in the admin system rather than email attachments.
+- A separate authenticated administration interface is required alongside the visitor self-service tablet interface.
+- The tablet starts directly in Kiosk Mode for visitor self-service with Check In and Check Out entry points.
+- The reception tablet also displays a QR code opening the same self-service registration flow on a visitor's phone. Completing that flow completes check-in, including agreement signature and photo capture.
+- Successful mobile check-in instructs the visitor to collect a badge at the reception tablet. It does not require the visitor to register again.
+- The tablet provides Print Badge: the visitor enters the check-in email to find their most recent check-in and print the badge. Self-service printing is limited to a check-in on the current day, using the company's configured time zone.
+- If printing fails, the visitor can retry or ask reception for assistance. Reception staff can assist with badge printing without creating another check-in.
+- Administrators and Receptionists access the back office from their own computers, separate from the visitor tablet interface.
+- Back-office roles are Administrator, Receptionist, and Employee. Receptionist accounts are optional; Administrators can perform reception work when no Receptionist is assigned.
+- Employees can log in and view only visit records for which they are the host.
+- When an employee leaves, the Administrator deactivates their account. Deactivated accounts cannot log in and are excluded from host search, while their historical hosted visit records remain available.
+- Administrators invite employees using only their email address. Employees accept the invitation, establish an account with a password, then log in to complete their personal information.
+- Receptionist accounts use the same email invitation, acceptance, password setup, and profile completion flow as Employee accounts. The Administrator assigns the invited user's role.
+- Departments are configured by the company's Administrator. Employees select their department when completing their profile. Default department names remain suggestions rather than fixed requirements.
+- Application Configuration is managed in the back office and stored in the database rather than hard-coded. Administrators can update company information and visit purpose options at any time.
+- Visitor records are retained indefinitely by default, with no automatic expiry or deletion. Administrators can manually clean up records when needed; cleanup scope and behavior remain undecided.
+- The back office supports date-filtered export of visitor records as an Excel (.xlsx) workbook, including registered visitor information such as email, phone number, and vehicle registration number. Photos are excluded. Export role permissions remain to be confirmed.
+- Company-specific SMTP settings are configurable in the back office rather than hard-coded. Exact SMTP fields, credential storage, and test-email behavior remain to be specified.
+- Proposed detailed role permissions still require confirmation.
+- Appointment scheduling, appointment approval, and appointment QR codes are outside the first version.
+- Selected stack: Next.js App Router with TypeScript, Next.js Server Actions and Route Handlers, PostgreSQL, Prisma ORM 7, pg and @prisma/adapter-pg.
+
+## Open Decisions
+
+- Purpose dropdown options and the reception assistance workflow.
+- Agreement version retention, initial template availability, and check-in step order.
+- SMTP configuration fields, credential storage, and test-email behavior.
+- Detailed back-office role permissions and authentication.
+- Brother printer model, connection method, printing configuration, and badge company label for personal visitors.
