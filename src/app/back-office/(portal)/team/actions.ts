@@ -67,3 +67,17 @@ export async function toggleStaffAccess(formData: FormData) {
   revalidatePath("/back-office/dashboard");
   redirect("/back-office/team?result=access-updated");
 }
+
+export async function promoteStaffToAdministrator(formData: FormData) {
+  await requireUser(["ADMINISTRATOR"]);
+  const id = String(formData.get("id") ?? "").trim();
+  const target = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true, status: true } });
+  if (!target || target.role === "ADMINISTRATOR" || target.status !== "ACTIVE") {
+    redirect("/back-office/team?error=role-change");
+  }
+
+  await prisma.user.update({ where: { id: target.id }, data: { role: "ADMINISTRATOR" } });
+  revalidatePath("/back-office/team");
+  revalidatePath("/back-office/dashboard");
+  redirect("/back-office/team?result=role-updated");
+}
