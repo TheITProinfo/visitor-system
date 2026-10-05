@@ -94,6 +94,8 @@ model CompanySettings {
 
 model VisitRecord {
   id                       String   @id @default(cuid())
+  visitorProfileId         String?
+  visitorProfile           VisitorProfile? @relation(fields: [visitorProfileId], references: [id], onDelete: SetNull)
   visitorFullName          String
   visitorCompanyName       String?
   isPersonalVisit          Boolean  @default(false)
@@ -118,4 +120,20 @@ model VisitRecord {
   @@index([visitorEmail, checkedInAt])
   @@index([hostId, checkedInAt])
   @@index([checkedInAt])
+  @@index([visitorProfileId, checkedInAt])
+}
+
+model VisitorProfile {
+  id           String        @id @default(cuid())
+  fullName     String
+  email        String?
+  phoneNumber  String?
+  company      String?
+  vehiclePlate String?
+  visitRecords VisitRecord[]
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+
+  @@index([fullName])
+  @@index([email])
 }

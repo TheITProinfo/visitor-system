@@ -50,6 +50,13 @@ Open <http://localhost:3000>. Keep the SSH tunnel running while using the databa
 - `prisma`: schema and migration history
 - `docs`: requirements and implementation plan
 
+## Runbooks
+
+- [User manual](docs/user-manual.md)
+- [Project description corrections](docs/project-description-corrections.md)
+- [Returning visitor handoff](docs/handoff-returning-visitors.md)
+- [Operations manual](docs/operations-manual.md)
+
 ## Database setup status
 
 The Prisma models cover users, one-time staff invitations, departments, visit purposes, company settings, and visit records. Company settings include an editable visitor agreement, encrypted SMTP credentials, and badge-printer preferences. Visit records also preserve the agreed text snapshot and private signature/photo file keys.

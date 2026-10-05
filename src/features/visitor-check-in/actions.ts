@@ -20,7 +20,7 @@ export async function searchActiveHosts(query: string) {
 
 export type CheckInActionResult =
   | { ok: true; hostName: string; companyName: string }
-  | { ok: false; code: "invalid" | "host-unavailable" | "purpose-unavailable" | "agreement-unavailable" | "failed" };
+  | { ok: false; code: "invalid" | "host-unavailable" | "purpose-unavailable" | "agreement-unavailable" | "profile-unavailable" | "failed" };
 
 export async function submitVisitorCheckIn(formData: FormData): Promise<CheckInActionResult> {
   const fullName = field(formData, "fullName", 160);
@@ -30,6 +30,8 @@ export async function submitVisitorCheckIn(formData: FormData): Promise<CheckInA
   const phone = field(formData, "visitorPhone", 40);
   const driving = formData.get("isDriving") === "true";
   const vehicleRegistrationNumber = field(formData, "vehicleRegistrationNumber", 24).toUpperCase();
+  const visitorProfileId = field(formData, "visitorProfileId", 64);
+  const updateVisitorProfile = formData.get("updateVisitorProfile") === "true";
   const hostId = field(formData, "hostId", 64);
   const purposeId = field(formData, "purposeId", 64);
   const checkInToken = field(formData, "checkInToken", 36);
@@ -47,12 +49,15 @@ export async function submitVisitorCheckIn(formData: FormData): Promise<CheckInA
     const result = await createVisitorCheckIn({
       fullName, companyName, isPersonalVisit, email, phone,
       vehicleRegistrationNumber: driving ? vehicleRegistrationNumber : "",
+      visitorProfileId,
+      updateVisitorProfile,
       hostId, purposeId, checkInToken, signatureData, photoData,
     } satisfies VisitorCheckInInput);
 
     if (result.status === "host-unavailable") return { ok: false, code: "host-unavailable" };
     if (result.status === "purpose-unavailable") return { ok: false, code: "purpose-unavailable" };
     if (result.status === "agreement-unavailable") return { ok: false, code: "agreement-unavailable" };
+    if (result.status === "profile-unavailable") return { ok: false, code: "profile-unavailable" };
 
     if (result.status === "created") {
       const time = formatInTimeZone(new Date(result.checkedInAt), result.timeZone);

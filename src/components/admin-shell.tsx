@@ -9,7 +9,7 @@ type AdminShellProps = {
     email: string;
     role: "ADMINISTRATOR" | "RECEPTIONIST" | "EMPLOYEE";
   };
-  active: "dashboard" | "visits" | "team" | "settings";
+  active: "dashboard" | "visits" | "team" | "settings" | "account";
 };
 
 const navigation = [
@@ -49,13 +49,13 @@ export function AdminShell({ children, user, active }: AdminShellProps) {
         </div>
         <div className="sidebar-account">
           <span className="avatar">{initials(user.firstName, user.lastName, user.email)}</span>
-          <span className="account-copy"><strong>{fullName}</strong><small>{user.role.toLowerCase().replace("_", " ")}</small></span>
+          <span className="account-copy"><strong>{fullName}</strong><small>{user.role.toLowerCase().replace("_", " ")}</small><Link className="text-link" href="/back-office/account/password">Change password</Link></span>
           <form action={signOut}><button className="signout-button" aria-label="Sign out" title="Sign out">↪</button></form>
         </div>
       </aside>
       <main className="admin-main">
         <header className="admin-topbar">
-          <div className="breadcrumb"><span>Workspace</span><span className="breadcrumb-slash">/</span><strong>{navigation.find((item) => item.key === active)?.label}</strong></div>
+          <div className="breadcrumb"><span>Workspace</span><span className="breadcrumb-slash">/</span><strong>{navigation.find((item) => item.key === active)?.label || "Account security"}</strong></div>
           <span className="secure-indicator"><i /> Secure back office</span>
         </header>
         <div className="admin-content">{children}</div>

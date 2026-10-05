@@ -8,6 +8,7 @@ import { searchActiveHosts, submitVisitorCheckIn, type CheckInActionResult } fro
 import { SignaturePad } from "@/features/visitor-check-in/signature-pad";
 
 type HostOption = { id: string; name: string; department: string };
+type VisitorProfileOption = { id: string; fullName: string; emailHint: string };
 type PurposeOption = { id: string; name: string };
 type Props = { initialToken: string; companyName: string; agreementText: string; purposes: PurposeOption[] };
 type VisitorDetails = {
@@ -69,12 +70,22 @@ const ERROR_COPY: Record<Exclude<CheckInActionResult, { ok: true }> ["code"], st
   "host-unavailable": "That person is no longer available in the staff directory. Search again or ask reception for assistance.",
   "purpose-unavailable": "That visit purpose is no longer available. Choose another purpose or ask reception for assistance.",
   "agreement-unavailable": "The visitor agreement is not configured. Please ask reception for assistance.",
+  "profile-unavailable": "We could not verify the saved visitor profile. Search again or enter your details manually.",
   failed: "We could not save your check-in. Please try once more or ask reception for help.",
 };
 
 export function CheckInForm({ initialToken, companyName, agreementText, purposes }: Props) {
   const [step, setStep] = useState(1);
   const [visitor, setVisitor] = useState(EMPTY_VISITOR);
+  const [profileOptions, setProfileOptions] = useState<VisitorProfileOption[]>([]);
+  const [profileCandidate, setProfileCandidate] = useState<VisitorProfileOption | null>(null);
+  const [visitorProfileId, setVisitorProfileId] = useState("");
+  const [profileEmailVerified, setProfileEmailVerified] = useState("");
+  const [saveProfileUpdates, setSaveProfileUpdates] = useState(false);
+  const [skipProfileLookup, setSkipProfileLookup] = useState(false);
+  const [profileVerificationEmail, setProfileVerificationEmail] = useState("");
+  const [profileLookupState, setProfileLookupState] = useState<"idle" | "searching" | "options" | "confirming" | "loaded" | "not-found" | "failed" | "verify-failed">("idle");
+  const [profileHasMore, setProfileHasMore] = useState(false);
   const [hostQuery, setHostQuery] = useState("");
   const [hosts, setHosts] = useState<HostOption[]>([]);
   const [selectedHost, setSelectedHost] = useState<HostOption | null>(null);
@@ -108,6 +119,32 @@ export function CheckInForm({ initialToken, companyName, agreementText, purposes
   }, [hostQuery, selectedHost]);
 
   useEffect(() => {
+    const name = visitor.fullName.trim().replace(/\s+/g, " ");
+    if (name.length < 2 || visitorProfileId || skipProfileLookup) return;
+
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setProfileLookupState("searching");
+      void fetch(`/api/visitor-profile/search?name=${encodeURIComponent(name)}`, { cache: "no-store" })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Profile search failed");
+          return response.json() as Promise<{ profiles: VisitorProfileOption[]; hasMore: boolean }>;
+        })
+        .then((result) => {
+          if (!active) return;
+          setProfileOptions(result.profiles);
+          setProfileHasMore(result.hasMore);
+          const uniqueMatch = result.profiles.length === 1 && !result.hasMore;
+          setProfileCandidate(uniqueMatch ? result.profiles[0] : null);
+          setProfileLookupState(result.profiles.length ? "options" : "not-found");
+        })
+        .catch(() => { if (active) setProfileLookupState("failed"); });
+    }, 500);
+
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [visitor.fullName, visitorProfileId, skipProfileLookup]);
+
+  useEffect(() => {
     idleAt.current = Date.now();
     const resetIdle = () => { idleAt.current = Date.now(); };
     const interval = window.setInterval(() => {
@@ -124,6 +161,84 @@ export function CheckInForm({ initialToken, companyName, agreementText, purposes
 
   function setVisitorField<K extends keyof VisitorDetails>(key: K, value: VisitorDetails[K]) {
     setVisitor((current) => ({ ...current, [key]: value }));
+  }
+
+  function changeVisitorName(fullName: string) {
+    setSkipProfileLookup(false);
+    if (visitorProfileId) {
+      setVisitor({ ...EMPTY_VISITOR, fullName });
+      setVisitorProfileId("");
+      setProfileEmailVerified("");
+      setSaveProfileUpdates(false);
+      setProfileVerificationEmail("");
+    } else {
+      setVisitorField("fullName", fullName);
+    }
+    setProfileOptions([]);
+    setProfileCandidate(null);
+    setProfileHasMore(false);
+    setProfileLookupState(fullName.trim().length >= 2 ? "searching" : "idle");
+  }
+
+  function changeVisitorEmail(email: string) {
+    setVisitorField("email", email);
+    if (visitorProfileId && email.trim().toLowerCase() !== profileEmailVerified) {
+      setVisitorProfileId("");
+      setProfileEmailVerified("");
+      setSaveProfileUpdates(false);
+      setSkipProfileLookup(true);
+      setProfileLookupState("idle");
+    }
+  }
+
+  async function loadReturningVisitor() {
+    if (!profileCandidate || !profileVerificationEmail.trim()) return;
+    setProfileLookupState("confirming");
+    try {
+      const response = await fetch("/api/visitor-profile/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ profileId: profileCandidate.id, email: profileVerificationEmail.trim() }),
+      });
+      if (!response.ok) {
+        setProfileLookupState("verify-failed");
+        return;
+      }
+      const profile = await response.json() as { id: string; fullName: string; email: string | null; phoneNumber: string | null; company: string | null; vehiclePlate: string | null };
+      setVisitor((current) => ({
+        ...current,
+        fullName: profile.fullName,
+        email: profile.email || profileVerificationEmail.trim(),
+        phone: profile.phoneNumber || "",
+        companyName: profile.company || "",
+        isPersonalVisit: !profile.company,
+        vehicleRegistrationNumber: profile.vehiclePlate || "",
+        isDriving: Boolean(profile.vehiclePlate),
+      }));
+      setVisitorProfileId(profile.id);
+      setProfileEmailVerified((profile.email || profileVerificationEmail).trim().toLowerCase());
+      setSaveProfileUpdates(false);
+      setSkipProfileLookup(false);
+      setProfileCandidate(null);
+      setProfileOptions([]);
+      setProfileLookupState("loaded");
+    } catch {
+      setProfileLookupState("failed");
+    }
+  }
+
+  function clearReturningVisitor() {
+    setVisitor((current) => ({ ...EMPTY_VISITOR, fullName: current.fullName }));
+    setVisitorProfileId("");
+    setProfileEmailVerified("");
+    setSaveProfileUpdates(false);
+    setSkipProfileLookup(true);
+    setProfileCandidate(null);
+    setProfileOptions([]);
+    setProfileVerificationEmail("");
+    setProfileHasMore(false);
+    setProfileLookupState("idle");
   }
 
   function continueFromDetails(event: FormEvent<HTMLFormElement>) {
@@ -190,6 +305,14 @@ export function CheckInForm({ initialToken, companyName, agreementText, purposes
   function restart() {
     setSuccess(null);
     setVisitor(EMPTY_VISITOR);
+    setVisitorProfileId("");
+    setProfileEmailVerified("");
+    setSaveProfileUpdates(false);
+    setSkipProfileLookup(false);
+    setProfileOptions([]);
+    setProfileCandidate(null);
+    setProfileVerificationEmail("");
+    setProfileLookupState("idle");
     setHostQuery("");
     setSelectedHost(null);
     setPurposeId("");
@@ -224,6 +347,8 @@ export function CheckInForm({ initialToken, companyName, agreementText, purposes
       <input type="hidden" name="visitorPhone" value={visitor.phone} />
       <input type="hidden" name="isDriving" value={String(visitor.isDriving)} />
       <input type="hidden" name="vehicleRegistrationNumber" value={visitor.vehicleRegistrationNumber} />
+      <input type="hidden" name="visitorProfileId" value={visitorProfileId} />
+      <input type="hidden" name="updateVisitorProfile" value={String(saveProfileUpdates)} />
       <input type="hidden" name="hostId" value={selectedHost?.id || ""} />
       <input type="hidden" name="purposeId" value={purposeId} />
       <input type="hidden" name="checkInToken" value={checkInToken} />
@@ -239,10 +364,26 @@ export function CheckInForm({ initialToken, companyName, agreementText, purposes
       {step === 1 && <section className="visitor-card">
         <div className="visitor-card-heading"><div><p className="visitor-eyebrow">STEP 1 OF 3</p><h2>Your details</h2><p>Tell us who you are. Your details are used for this visit.</p></div><span className="visitor-heading-icon">01</span></div>
         <div className="visitor-fields">
-          <label className="visitor-field visitor-field-wide">Full name<input autoComplete="name" maxLength={160} required value={visitor.fullName} onChange={(event) => setVisitorField("fullName", event.target.value)} placeholder="Enter your full name" /></label>
+          <div className="visitor-field visitor-field-wide">
+            <label htmlFor="visitor-full-name">Full name</label>
+            <input id="visitor-full-name" autoComplete="name" maxLength={160} required value={visitor.fullName} onChange={(event) => changeVisitorName(event.target.value)} placeholder="Enter your full name" />
+            {profileLookupState === "searching" && <small className="visitor-hint">Checking for a returning visitor…</small>}
+            {profileLookupState === "failed" && <small className="visitor-field-error">We could not check saved visitor details. You can continue and enter your details manually.</small>}
+            {profileLookupState === "not-found" && <small className="visitor-hint">No saved profile found. Enter your details below as a new visitor.</small>}
+            {profileLookupState === "loaded" && <><div className="selected-host"><span><strong>Returning visitor</strong><small>Saved details loaded. You can edit them for this visit.</small></span><button type="button" onClick={clearReturningVisitor}>Clear profile</button></div><label className="returning-visitor-save"><input type="checkbox" checked={saveProfileUpdates} onChange={(event) => setSaveProfileUpdates(event.target.checked)} /><span><strong>Save these changes to my profile for next time</strong><small>Leave unchecked to keep this visit separate from your saved details.</small></span></label></>}
+            {profileCandidate && profileLookupState !== "loaded" && <div className="selected-host"><span><strong>Returning visitor found</strong><small>{profileCandidate.fullName} · {profileCandidate.emailHint}</small></span></div>}
+            {profileOptions.length > 0 && !profileCandidate && <ul className="host-results" aria-label="Returning visitor matches">{profileOptions.map((profile) => <li key={profile.id}><button type="button" onClick={() => { setProfileCandidate(profile); setProfileVerificationEmail(visitor.email); setProfileLookupState("options"); }}><span><strong>{profile.fullName}</strong><small>{profile.emailHint}</small></span><span aria-hidden="true">→</span></button></li>)}</ul>}
+            {profileHasMore && <small className="visitor-hint">More than five profiles match. Enter more of your name to narrow the results.</small>}
+            {profileCandidate && profileLookupState !== "loaded" && <div className="returning-visitor-confirm">
+              <label htmlFor="profile-verification-email">Confirm the email saved on your profile</label>
+              <input id="profile-verification-email" type="email" autoComplete="email" maxLength={254} value={profileVerificationEmail} onChange={(event) => setProfileVerificationEmail(event.target.value)} placeholder="Enter your saved email address" />
+              {profileLookupState === "verify-failed" && <small className="visitor-field-error">Those details did not match. Check the email or continue as a new visitor.</small>}
+              <button className="visitor-secondary" type="button" disabled={profileLookupState === "confirming" || !profileVerificationEmail.trim()} onClick={() => void loadReturningVisitor()}>{profileLookupState === "confirming" ? "Checking…" : "Confirm & load saved details"}</button>
+            </div>}
+          </div>
           <fieldset className="visitor-choice visitor-field-wide"><legend>Visit type</legend><label><input type="radio" name="visitType" checked={!visitor.isPersonalVisit} onChange={() => setVisitorField("isPersonalVisit", false)} /> Company visit</label><label><input type="radio" name="visitType" checked={visitor.isPersonalVisit} onChange={() => setVisitorField("isPersonalVisit", true)} /> Personal visit</label></fieldset>
           {!visitor.isPersonalVisit && <label className="visitor-field visitor-field-wide">Company name<input autoComplete="organization" maxLength={160} required={!visitor.isPersonalVisit} value={visitor.companyName} onChange={(event) => setVisitorField("companyName", event.target.value)} placeholder="Your organization" /></label>}
-          <label className="visitor-field">Email address<input autoComplete="email" type="email" maxLength={254} required value={visitor.email} onChange={(event) => setVisitorField("email", event.target.value)} placeholder="you@example.com" /></label>
+          <label className="visitor-field">Email address<input autoComplete="email" type="email" maxLength={254} required value={visitor.email} onChange={(event) => changeVisitorEmail(event.target.value)} placeholder="you@example.com" /></label>
           <label className="visitor-field">Phone number<input autoComplete="tel" type="tel" maxLength={40} minLength={5} required value={visitor.phone} onChange={(event) => setVisitorField("phone", event.target.value)} placeholder="Your phone number" /></label>
           <fieldset className="visitor-choice visitor-field-wide"><legend>Are you driving?</legend><label><input type="radio" name="driving" checked={!visitor.isDriving} onChange={() => { setVisitorField("isDriving", false); setVisitorField("vehicleRegistrationNumber", ""); }} /> No</label><label><input type="radio" name="driving" checked={visitor.isDriving} onChange={() => setVisitorField("isDriving", true)} /> Yes</label></fieldset>
           {visitor.isDriving && <label className="visitor-field visitor-field-wide">Vehicle registration number<input autoCapitalize="characters" maxLength={24} required value={visitor.vehicleRegistrationNumber} onChange={(event) => setVisitorField("vehicleRegistrationNumber", event.target.value.toUpperCase())} placeholder="Enter your plate number" /></label>}
