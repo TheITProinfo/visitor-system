@@ -35,3 +35,17 @@ _Avoid_: Receptionist, visitor
 **Configuration**:
 Company-specific settings managed by the Administrator, including company information, departments, visit purposes, agreement content, and outgoing email settings.
 _Avoid_: Hard-coded company settings
+
+## Architecture concepts
+
+**Orchestrator**:
+A component that coordinates a multi-step workflow across services or modules. It controls sequence and branching, and handles cross-module outcomes such as retries or failures while delegating each operation to the service that owns it. For example, a visitor check-in orchestrator could save the visit, store the photo, then request visitor and host notifications.
+_Avoid_: Runner, Scheduler
+
+**Runner**:
+A component or process that executes an individual task or job. A runner performs the assigned work but does not, by itself, coordinate a larger multi-step workflow.
+_Avoid_: Orchestrator
+
+**Scheduler**:
+A component that triggers tasks at scheduled times or intervals, such as a cron job. Scheduling determines when work starts; it does not, by itself, coordinate the workflow inside that work.
+_Avoid_: Orchestrator

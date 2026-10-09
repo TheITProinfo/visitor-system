@@ -19,6 +19,28 @@ enum UserStatus {
   DEACTIVATED
 }
 
+enum AiProvider {
+  OPENAI
+  AZURE_OPENAI
+}
+
+enum AiReportCadence {
+  DAILY
+  WEEKLY
+}
+
+enum AiReportDeliveryStatus {
+  PROCESSING
+  SENT
+  FAILED
+}
+
+enum EntraLinkStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String     @id @default(cuid())
   email        String     @unique
@@ -29,13 +51,20 @@ model User {
   status       UserStatus @default(INVITED)
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  entraTenantId String?
+  entraObjectId String?
   hostedVisits VisitRecord[] @relation("VisitHost")
   sentInvitations Invitation[] @relation("InvitationCreator")
+  aiAuditEvents AiAuditEvent[]
+  entraLinkRequests EntraLinkRequest[] @relation("EntraLinkRequestedFor")
+  reviewedEntraLinks EntraLinkRequest[] @relation("EntraLinkReviewedBy")
+  entraLinkChallenges EntraLinkChallenge[]
   createdAt    DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
 
   @@index([role, status])
   @@index([departmentId])
+  @@unique([entraTenantId, entraObjectId])
 }
 
 model Invitation {
@@ -89,7 +118,116 @@ model CompanySettings {
   printerAddress        String?
   badgeLabelWidthMm     Int?
   badgeLabelHeightMm    Int?
+  aiProvider            AiProvider?
+  aiEndpoint            String?
+  aiModel               String?
+  aiApiKeyEncrypted     String? @db.Text
+  aiEnabled              Boolean @default(false)
+  aiConnectionTestedAt  DateTime? @db.Timestamptz(3)
+  aiConfigurationHash   String?
+  aiTestedConfigurationHash String?
+  aiPausedUntil         DateTime? @db.Timestamptz(3)
+  aiRequestsPerUserPerDay Int @default(30)
+  aiMaxTokensPerMonth    Int @default(100000)
+  copilotEnabled         Boolean @default(false)
+  copilotTenantId        String?
+  copilotApiAudience     String?
+  copilotConnectorClientId String?
+  copilotLoginClientId String?
+  copilotLoginClientSecretEncrypted String? @db.Text
+  aiAuditEvents          AiAuditEvent[]
+  aiReportSchedule      AiReportSchedule?
+  entraLinkRequests     EntraLinkRequest[]
+  entraLinkChallenges   EntraLinkChallenge[]
   updatedAt             DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model AiAuditEvent {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  settingsId   String
+  settings     CompanySettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  operation    String
+  filters      Json?
+  resultCount  Int      @default(0)
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  success      Boolean
+  errorCode    String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([settingsId, createdAt])
+}
+
+model AiReportSchedule {
+  id                    String   @id @default(cuid())
+  settingsId            String   @unique
+  settings              CompanySettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  enabled               Boolean  @default(false)
+  cadence               AiReportCadence @default(DAILY)
+  sendTime              String   @default("09:00")
+  recipientUserIds      String[] @default([])
+  testedAt              DateTime? @db.Timestamptz(3)
+  configurationHash     String?
+  nextRunAt             DateTime? @db.Timestamptz(3)
+  lastProcessedPeriodKey String?
+  lastSentAt            DateTime? @db.Timestamptz(3)
+  createdAt             DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model AiReportDelivery {
+  id          String   @id @default(cuid())
+  periodKey   String   @unique
+  periodStart DateTime @db.Timestamptz(3)
+  periodEnd   DateTime @db.Timestamptz(3)
+  status      AiReportDeliveryStatus @default(PROCESSING)
+  errorCode   String?
+  sentAt      DateTime? @db.Timestamptz(3)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+}
+
+model EntraLinkChallenge {
+  id        String   @id @default(cuid())
+  stateHash String   @unique
+  nonce     String
+  codeVerifierEncrypted String @db.Text
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  settingsId String
+  settings   CompanySettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([expiresAt])
+}
+
+model EntraLinkRequest {
+  id           String   @id @default(cuid())
+  settingsId   String
+  settings     CompanySettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation("EntraLinkRequestedFor", fields: [userId], references: [id], onDelete: Cascade)
+  entraTenantId String
+  entraObjectId String
+  email        String?
+  displayName  String?
+  status       EntraLinkStatus @default(PENDING)
+  verifiedAt   DateTime @db.Timestamptz(3)
+  reviewedById String?
+  reviewedBy   User?    @relation("EntraLinkReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime? @db.Timestamptz(3)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@index([userId, status])
+  @@unique([entraTenantId, entraObjectId, status])
 }
 
 model VisitRecord {

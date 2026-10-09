@@ -9,12 +9,13 @@ type AdminShellProps = {
     email: string;
     role: "ADMINISTRATOR" | "RECEPTIONIST" | "EMPLOYEE";
   };
-  active: "dashboard" | "visits" | "team" | "settings" | "account";
+  active: "dashboard" | "visits" | "team" | "settings" | "account" | "assistant";
 };
 
 const navigation = [
   { key: "dashboard", href: "/back-office/dashboard", label: "Overview", icon: "◫" },
   { key: "visits", href: "/back-office/visits", label: "Visitor records", icon: "▤" },
+  { key: "assistant", href: "/back-office/assistant", label: "AI assistant", icon: "✦", assistant: true },
   { key: "team", href: "/back-office/team", label: "People", icon: "♧", admin: true },
   { key: "settings", href: "/back-office/settings", label: "Configuration", icon: "⚙", admin: true },
 ] as const;
@@ -36,7 +37,7 @@ export function AdminShell({ children, user, active }: AdminShellProps) {
         </Link>
         <div className="nav-label">WORKSPACE</div>
         <nav className="admin-nav" aria-label="Back office">
-          {navigation.filter((item) => !("admin" in item && item.admin) || user.role === "ADMINISTRATOR").map((item) => (
+          {navigation.filter((item) => (!("admin" in item && item.admin) || user.role === "ADMINISTRATOR") && (!("assistant" in item && item.assistant) || user.role !== "EMPLOYEE")).map((item) => (
             <Link key={item.key} className={`admin-nav-link${active === item.key ? " active" : ""}`} href={item.href}>
               <span aria-hidden="true" className="nav-icon">{item.icon}</span>{item.label}
             </Link>
@@ -49,7 +50,7 @@ export function AdminShell({ children, user, active }: AdminShellProps) {
         </div>
         <div className="sidebar-account">
           <span className="avatar">{initials(user.firstName, user.lastName, user.email)}</span>
-          <span className="account-copy"><strong>{fullName}</strong><small>{user.role.toLowerCase().replace("_", " ")}</small><Link className="text-link" href="/back-office/account/password">Change password</Link></span>
+          <span className="account-copy"><strong>{fullName}</strong><small>{user.role.toLowerCase().replace("_", " ")}</small><Link className="text-link" href="/back-office/account/password">Change password</Link><Link className="text-link" href="/back-office/account/copilot-link">Microsoft identity</Link></span>
           <form action={signOut}><button className="signout-button" aria-label="Sign out" title="Sign out">↪</button></form>
         </div>
       </aside>

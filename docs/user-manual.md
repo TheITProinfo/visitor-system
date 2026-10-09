@@ -1,11 +1,17 @@
 # Visitor System User Manual
 
 **Audience:** Visitors, employees, reception staff, and administrators  
-**Last updated:** October 5, 2026
+**Last updated:** October 7, 2026
 
 This guide explains how to use the Visitor System website. For server setup, deployment, backups, and PM2, see the [Operations Manual](operations-manual.md).
 
-## For visitors
+## Menus and access by role
+
+- **Administrator:** Overview, Visitor records, People, and Configuration. Administrators can review all visits, manage workspace settings, invite staff, manage staff access, and promote active Employee or Receptionist accounts to Administrator.
+- **Front desk (Receptionist):** Overview and Visitor records. Receptionists can review all visits and assist visitors at the kiosk. Badge printer preferences can be configured by an administrator, but automatic badge printing is not a complete workflow yet.
+- **Staff (Employee):** Overview and Visitor records for visits hosted by that employee. When SMTP is configured, the system attempts to email the host when a visitor checks in; there is no separate notification page.
+
+## Visitor self check-in flow
 
 ### Check in
 
@@ -56,8 +62,9 @@ In **Visitor records**, you can search by visitor, email, company, host, or purp
 3. When email delivery is configured, the invitation is sent to that address. If delivery fails, use the one-time link displayed on the page and share it securely with the intended person. The link expires after seven days.
 4. After the invitee sets a password and completes their staff profile, their account becomes active.
 5. Use the staff list to activate or deactivate access. Deactivated staff cannot sign in or appear in host search, while their historical visit records remain available.
+6. To grant full administrator permissions, open the **Action** control for an active Employee or Receptionist, choose **Make administrator**, review the confirmation, and select **Confirm promotion**. Administrator access includes staff management and workspace settings.
 
-Administrators cannot invite another administrator from the People page. Keep at least one active administrator account.
+Administrators cannot invite another administrator from the People page. Promote an active staff account when another administrator is needed. Keep at least one active administrator account.
 
 ### Configure the visitor experience
 

@@ -3,6 +3,7 @@ import { requireUser } from "@/server/auth";
 import { createDepartment, createPurpose, saveAgreementTemplate, saveCompanySettings, saveSmtpSettings, savePrinterSettings, sendSmtpTestEmail, toggleDepartment, togglePurpose } from "./actions";
 import { AdminShell } from "@/components/admin-shell";
 import { toTimeZoneInput } from "@/server/time-zones";
+import Link from "next/link";
 
 const messages: Record<string, string> = {
   saved: "Company settings saved.",
@@ -50,6 +51,7 @@ export default async function SettingsPage({
     <AdminShell user={user} active="settings">
       <section className="page-heading-row"><div><p className="eyebrow">WORKSPACE PREFERENCES</p><h1>Configuration</h1><p className="page-subtitle">Set company details and maintain the lists used in the visitor experience.</p></div><span className="result-count">ADMINISTRATOR</span></section>
       {displayedResult && messages[displayedResult] && <p className={`settings-message ${displayedResult.endsWith("required") || displayedResult.endsWith("invalid") || displayedResult.endsWith("exists") || displayedResult.endsWith("failed") || displayedResult.endsWith("mismatch") ? "is-error" : ""}`} role="status">{messages[displayedResult]}</p>}
+      <section className="panel settings-card ai-settings-entry"><div className="panel-heading"><div><p className="eyebrow">AI & INTEGRATIONS</p><h2>Assistant, Copilot & scheduled reports</h2><p>Configure providers, privacy controls, Microsoft identity links, and administrator reports.</p></div><Link className="primary-button compact-button" href="/back-office/settings/ai">Open AI configuration <span>→</span></Link></div></section>
       <div className="settings-grid">
         <section className="panel settings-card company-settings"><div className="panel-heading"><div><p className="eyebrow">COMPANY PROFILE</p><h2>Organization details</h2></div><span className="settings-card-icon green">⌂</span></div>
           <form action={saveCompanySettings} className="settings-form">

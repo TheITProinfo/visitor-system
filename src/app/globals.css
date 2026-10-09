@@ -360,3 +360,33 @@ body {
   .admin-brand strong { display: none; }.admin-brand small { display: none; }.admin-nav-link { font-size: 0; }.admin-nav-link .nav-icon { font-size: 16px; }.breadcrumb { font-size: 10px; }.secure-indicator { font-size: 8px; }
   .metric-grid { grid-template-columns: 1fr 1fr; }.team-summary { grid-template-columns: 1fr 1fr; }.team-note { grid-column: 1/-1; }.panel-heading .text-link { font-size: 9px; }
 }
+
+.ai-assistant-panel { max-width: 1120px; }
+.ai-assistant-body { padding: 0 20px 20px; }
+.ai-question-form { display: grid; gap: 8px; margin: 15px 0 18px; }
+.ai-question-form>label { color: #49564e; font-size: 10px; font-weight: 650; }
+.ai-question-form textarea { width: 100%; resize: vertical; border: 1px solid #e1e7e2; border-radius: 9px; outline: none; background: #fff; padding: 11px; color: #334139; font: inherit; font-size: 11px; }
+.ai-question-form textarea:focus { border-color: #71aa85; box-shadow: 0 0 0 3px #e8f3ea; }
+.ai-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ai-form-footer small { color: #909b93; font-size: 9px; }
+.ai-form-footer .compact-button { width: auto; min-width: 160px; padding: 0 14px; }
+.ai-result { border-top: 1px solid #edf1ed; padding-top: 13px; }
+.ai-result-summary { margin: 0 0 12px; color: #49564e; font-size: 11px; line-height: 1.6; }
+.ai-assistant-panel .settings-help { font-size: 10px; }
+@media (max-width: 760px) { .ai-assistant-body { padding: 0 14px 16px; } .ai-form-footer { align-items: flex-start; flex-direction: column; }.ai-form-footer .compact-button { width: 100%; } }
+
+.ai-settings-entry { margin-bottom: 15px; padding: 14px 18px; }
+.ai-settings-entry .panel-heading { gap: 16px; padding: 0; }
+.ai-settings-entry .panel-heading p:not(.eyebrow) { margin: 5px 0 0; color: #849087; font-size: 10px; line-height: 1.5; }
+.settings-card h3 { margin: 18px 0 10px; color: #49564e; font-size: 12px; }
+.settings-form fieldset { min-width: 0; border: 1px solid #e8ede8; border-radius: 8px; padding: 10px; }
+.settings-form fieldset legend { padding: 0 5px; color: #647168; font-size: 10px; font-weight: 650; }
+.settings-form fieldset .settings-checkbox { margin: 2px 0; }
+.inline-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.inline-actions .filter-button,.test-email-form .filter-button { min-height: 32px; padding: 0 10px; }
+.test-email-form>span { flex: 1; color: #647168; font-size: 9px; }
+.test-email-form>form { display: flex; }
+@media (max-width: 760px) {
+  .ai-settings-entry .panel-heading { align-items: stretch; flex-direction: column; }
+  .test-email-form { flex-wrap: wrap; }
+}

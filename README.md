@@ -2,6 +2,16 @@
 
 Single-company visitor registration app. The Next.js app and project documentation live together in this folder. Business rules and external services are kept outside the page components to preserve separation of concerns.
 
+## Feature summary
+
+- Public tablet and mobile visitor check-in, with visitor-profile reuse, host and purpose selection, agreement consent, digital signature, and photo capture.
+- Separate visit records for each arrival, with optional check-out and searchable/filterable visit history.
+- Role-based staff portal: Employees see visits hosted by them; Receptionists and Administrators can review all visitor records.
+- Administrator tools for company settings, departments, visit purposes, agreement text, SMTP, and staff invitations, access management, and promotion to Administrator.
+- When SMTP is configured, the system attempts to send visitor check-in confirmations and host arrival notifications.
+
+See the [User Manual](docs/user-manual.md) for the separate visitor self check-in flow, role menus, and step-by-step instructions.
+
 ## Stack
 
 - Next.js App Router and TypeScript
@@ -49,6 +59,8 @@ Open <http://localhost:3000>. Keep the SSH tunnel running while using the databa
 - `src/server`: database, permissions, business services, and integrations
 - `prisma`: schema and migration history
 - `docs`: requirements and implementation plan
+
+For product and architecture terminology, see the [project glossary](GLOSSARY.md).
 
 ## Runbooks
 
